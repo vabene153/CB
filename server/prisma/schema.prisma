@@ -1,0 +1,542 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Enums
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum EquipmentStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  OUT_OF_SERVICE
+}
+
+enum TimeEntryStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum DailyReportWeather {
+  SUN
+  CLOUDY
+  RAIN
+  SNOW
+}
+
+enum KanbanColumnKey {
+  GRUNDLAGEN
+  BAUSTELLENEINRICHTUNG
+  BAUEN
+  ZWISCHENRECHNUNG
+  ABRECHNUNG
+}
+
+// Basis-Modelle (mit minimalen Relationen, damit Prisma stabil läuft)
+
+model Tenant {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+}
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  label     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  label     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  tenantId     Int
+  email        String
+  password     String
+  firstName    String
+  lastName     String
+  status       UserStatus @default(ACTIVE)
+  phone        String?
+  position     String?
+  isSuperAdmin Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userRoles UserRole[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model UserRole {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  roleId Int
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+}
+
+model RolePermission {
+  id           Int @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  userId    Int?
+  action    String
+  entity    String
+  entityId  Int?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+// Kunden & Kontakte
+
+model Customer {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  name       String
+  type       String
+  street     String?
+  postalCode String?
+  city       String?
+  country    String?  @default("Deutschland")
+  phone      String?
+  email      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+  createdById Int?
+  updatedById Int?
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+}
+
+model CustomerContact {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  customerId Int
+  firstName  String
+  lastName   String
+  role       String?
+  phone      String?
+  mobile     String?
+  email      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@index([tenantId])
+  @@index([tenantId, customerId])
+}
+
+// Projekte / Aufgaben / Kanban / Gantt
+
+model Project {
+  id              Int           @id @default(autoincrement())
+  tenantId        Int
+  customerId      Int?
+  name            String
+  description     String?
+  street          String?
+  postalCode      String?
+  city            String?
+  country         String?       @default("Deutschland")
+  status          ProjectStatus @default(PLANNING)
+  startDate       DateTime?
+  endDate         DateTime?
+  progressPercent Int           @default(0)
+  projectManagerId Int?
+  foremanId       Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model ProjectPhase {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  projectId Int
+  name      String
+  order     Int
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProjectUserAssignment {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  projectId Int
+  userId    Int
+  role      String?
+  fromDate  DateTime?
+  toDate    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, projectId])
+  @@index([tenantId, userId])
+}
+
+model ProjectEquipmentAssignment {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  projectId   Int
+  equipmentId Int
+  fromDate    DateTime?
+  toDate      DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, projectId])
+  @@index([tenantId, equipmentId])
+}
+
+model KanbanColumn {
+  id        Int            @id @default(autoincrement())
+  tenantId  Int
+  key       KanbanColumnKey
+  label     String
+  order     Int
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([tenantId, key])
+}
+
+model ProjectTask {
+  id             Int      @id @default(autoincrement())
+  tenantId       Int
+  projectId      Int
+  title          String
+  description    String?
+  kanbanColumnId Int?
+  startDate      DateTime?
+  endDate        DateTime?
+  assigneeId     Int?
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, projectId])
+}
+
+model TaskStatusHistory {
+  id           Int      @id @default(autoincrement())
+  tenantId     Int
+  taskId       Int
+  fromColumnId Int?
+  toColumnId   Int?
+  changedById  Int?
+  createdAt    DateTime @default(now())
+}
+
+// Dokumente
+
+model Document {
+  id           Int      @id @default(autoincrement())
+  tenantId     Int
+  fileName     String
+  mimeType     String
+  path         String
+  size         Int
+  uploadedById Int?
+  uploadDate   DateTime @default(now())
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  @@index([tenantId])
+}
+
+model DocumentLink {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  documentId Int
+  entityType String
+  entityId   Int
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, entityType, entityId])
+}
+
+model DocumentVersion {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  documentId Int
+  version    Int
+  path       String
+  createdAt  DateTime @default(now())
+}
+
+// Fuhrpark
+
+model EquipmentCategory {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, name])
+}
+
+model Equipment {
+  id              Int             @id @default(autoincrement())
+  tenantId        Int
+  categoryId      Int
+  name            String
+  type            String?
+  licensePlate    String?
+  inventoryNo     String?
+  manufacturer    String?
+  model           String?
+  year            Int?
+  status          EquipmentStatus @default(AVAILABLE)
+  nextServiceAt   DateTime?
+  nextInspectionAt DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([tenantId, categoryId])
+}
+
+model EquipmentAssignment {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  equipmentId Int
+  projectId   Int?
+  fromDate    DateTime?
+  toDate      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, equipmentId])
+}
+
+model EquipmentMaintenance {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  equipmentId Int
+  date        DateTime
+  type        String
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+// Zeiterfassung
+
+model TimeEntry {
+  id           Int             @id @default(autoincrement())
+  tenantId     Int
+  userId       Int
+  projectId    Int
+  date         DateTime
+  fromTime     DateTime
+  toTime       DateTime
+  breakMinutes Int             @default(0)
+  hours        Float
+  activity     String
+  status       TimeEntryStatus @default(DRAFT)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([tenantId, projectId])
+  @@index([tenantId, userId])
+}
+
+model TimeEntryApproval {
+  id           Int      @id @default(autoincrement())
+  tenantId     Int
+  timeEntryId  Int
+  approvedById Int?
+  status       TimeEntryStatus
+  createdAt    DateTime @default(now())
+}
+
+// Tagesberichte
+
+model DailyReport {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  projectId Int
+  date      DateTime
+  weather   DailyReportWeather
+  notes     String?
+  authorId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, projectId, date])
+}
+
+model DailyReportWorker {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  dailyReportId Int
+  userId        Int
+  hours         Float
+  activity      String?
+  createdAt     DateTime @default(now())
+}
+
+model DailyReportEquipment {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  dailyReportId Int
+  equipmentId   Int
+  hours         Float
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+model DailyReportAttachment {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  dailyReportId Int
+  documentId    Int
+  createdAt     DateTime @default(now())
+}
+
+// Chat
+
+model ProjectChat {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  projectId Int
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, projectId])
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  chatId    Int
+  senderId  Int
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, chatId])
+}
+
+model ChatMessageAttachment {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  messageId Int
+  documentId Int
+  createdAt DateTime @default(now())
+}
+
+model ProjectChatMember {
+  id       Int      @id @default(autoincrement())
+  tenantId Int
+  chatId   Int
+  userId   Int
+  joinedAt DateTime @default(now())
+
+  @@unique([chatId, userId])
+}
+
+// Kalender / Planung
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  projectId Int
+  title     String
+  start     DateTime
+  end       DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GanttItem {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  projectId Int
+  name      String
+  start     DateTime
+  end       DateTime
+  progress  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Geodaten
+
+model ProjectLocation {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  projectId Int  @unique
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
