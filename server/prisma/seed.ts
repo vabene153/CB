@@ -160,6 +160,19 @@ async function main() {
       roleId: projectManagerRole.id,
     },
   });
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: managerUser.id,
+        roleId: adminRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: managerUser.id,
+      roleId: adminRole.id,
+    },
+  });
 
   // Kunden & Kontakte
   const customer = await prisma.customer.create({

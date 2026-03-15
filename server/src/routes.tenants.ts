@@ -1,14 +1,13 @@
 import express from 'express';
 import { prisma } from './prisma';
-import { requireAuth, requireSuperAdmin } from './middleware/auth';
+import { requireAuth, requireSuperAdmin, canManageTenant } from './middleware/auth';
 
 const router = express.Router();
 
 router.use(requireAuth);
-router.use(requireSuperAdmin);
 
-// GET /api/tenants – alle Mandanten, optional ?q= Suchbegriff
-router.get('/', async (req, res) => {
+// GET /api/tenants – alle Mandanten (nur SuperAdmin), optional ?q= Suchbegriff
+router.get('/', requireSuperAdmin, async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   try {
     const where = q
@@ -48,11 +47,16 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/tenants/:id – ein Mandant inkl. Kontakte
+// GET /api/tenants/:id – ein Mandant inkl. Kontakte (SuperAdmin oder eigener Mandant)
 router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!id || Number.isNaN(id)) {
     res.status(400).json({ message: 'Ungültige ID.' });
+    return;
+  }
+  const user = req.user!;
+  if (!user.isSuperAdmin && user.tenantId !== id) {
+    res.status(403).json({ message: 'Zugriff nur auf den eigenen Mandanten.' });
     return;
   }
   try {
@@ -83,8 +87,8 @@ type ContactInput = {
   order?: number;
 };
 
-// POST /api/tenants – Mandant anlegen
-router.post('/', async (req, res) => {
+// POST /api/tenants – Mandant anlegen (nur SuperAdmin)
+router.post('/', requireSuperAdmin, async (req, res) => {
   const {
     name,
     slug,
@@ -193,11 +197,15 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PATCH /api/tenants/:id – Mandant aktualisieren
+// PATCH /api/tenants/:id – Mandant aktualisieren (SuperAdmin oder Tenant-Admin nur eigener Mandant)
 router.patch('/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!id || Number.isNaN(id)) {
     res.status(400).json({ message: 'Ungültige ID.' });
+    return;
+  }
+  if (!canManageTenant(req, id)) {
+    res.status(403).json({ message: 'Sie dürfen diesen Mandanten nicht bearbeiten.' });
     return;
   }
 
