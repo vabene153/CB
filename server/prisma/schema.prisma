@@ -58,6 +58,19 @@ model Tenant {
   name      String
   slug      String   @unique
   isActive  Boolean  @default(true)
+  street    String?
+  postalCode String?
+  city      String?
+  country   String?  @default("Deutschland")
+  phone     String?
+  email     String?
+  contactPerson String?
+  billingName   String?
+  billingStreet String?
+  billingPostalCode String?
+  billingCity   String?
+  billingCountry String? @default("Deutschland")
+  notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

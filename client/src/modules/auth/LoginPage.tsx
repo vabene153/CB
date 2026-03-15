@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../../services/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 
 const LoginPage: React.FC = () => {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const navigate = useNavigate();
+
+  if (user) {
+    navigate('/', { replace: true });
+    return null;
+  }
   const [email, setEmail] = useState('admin@musterbau.de');
   const [password, setPassword] = useState('Passwort123!');
   const [loading, setLoading] = useState(false);
@@ -16,6 +23,7 @@ const LoginPage: React.FC = () => {
     try {
       const res = await apiClient.post('/auth/login', { email, password });
       login({ accessToken: res.data.accessToken, user: res.data.user });
+      navigate('/', { replace: true });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login fehlgeschlagen');
     } finally {

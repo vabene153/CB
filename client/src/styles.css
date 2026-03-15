@@ -286,3 +286,242 @@ body {
   color: #e5e7eb;
 }
 
+/* Dashboard */
+.dashboard-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.dashboard-subtitle {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(30, 64, 175, 0.5);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: border-color 0.15s ease, transform 0.05s ease;
+}
+
+.dashboard-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.dashboard-card-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin: 0 0 0.35rem;
+}
+
+.dashboard-card-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+/* Modul-Seiten (Mandanten, etc.) */
+.module-page {
+  max-width: 960px;
+}
+
+.module-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem 1.5rem;
+}
+
+.module-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #f9fafb;
+  width: 100%;
+}
+
+.module-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.module-muted {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.btn-primary-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  color: #0b1120;
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+
+.btn-primary-inline:hover {
+  filter: brightness(1.05);
+}
+
+.btn-secondary-inline {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: rgba(30, 64, 175, 0.4);
+  color: #e5e7eb;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-secondary-inline:hover {
+  background: rgba(30, 64, 175, 0.6);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 64, 175, 0.5);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(30, 64, 175, 0.3);
+}
+
+.data-table th {
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.table-empty {
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem !important;
+}
+
+.code-inline {
+  font-size: 0.85em;
+  padding: 0.15rem 0.4rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.badge-inactive {
+  background: rgba(100, 116, 139, 0.3);
+  color: #94a3b8;
+}
+
+.link-action {
+  color: #38bdf8;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.link-action:hover {
+  text-decoration: underline;
+}
+
+.form-card {
+  max-width: 480px;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(30, 64, 175, 0.5);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-card .form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-card .form-label {
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  color: #e5e7eb;
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+.form-field-check {
+  flex-direction: row;
+}
+
+.form-label-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #e5e7eb;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+

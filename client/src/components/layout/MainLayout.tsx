@@ -22,6 +22,11 @@ const MainLayout: React.FC = () => {
           <Link to="/" className="sidebar-link">
             Dashboard
           </Link>
+          {user?.isSuperAdmin && (
+            <Link to="/mandanten" className="sidebar-link">
+              Mandanten
+            </Link>
+          )}
           <Link to="/kunden" className="sidebar-link">
             Kunden
           </Link>
