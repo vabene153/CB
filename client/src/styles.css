@@ -360,6 +360,40 @@ body {
   color: #9ca3af;
 }
 
+.module-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.8);
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #64748b;
+}
+
+.search-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+}
+
+.form-select {
+  cursor: pointer;
+}
+
 .module-muted {
   color: #64748b;
   font-size: 0.9rem;
@@ -523,5 +557,126 @@ body {
   display: flex;
   gap: 0.75rem;
   margin-top: 0.5rem;
+}
+
+.contact-block {
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(30, 64, 175, 0.4);
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.contact-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.contact-block-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.btn-remove {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-remove:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.btn-add-contact {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-add-contact:hover {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+.form-card.wide {
+  max-width: 640px;
+}
+
+/* Mandanten-Dashboard (Landingpage pro Mandant) */
+.tenant-dashboard {
+  max-width: 720px;
+}
+
+.tenant-dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.tenant-dashboard-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.tenant-dashboard-subtitle {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #9ca3af;
+}
+
+.tenant-dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.tenant-dashboard-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(30, 64, 175, 0.5);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+}
+
+.tenant-dashboard-card:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.2);
+  transform: translateY(-1px);
+}
+
+.tenant-dashboard-card-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 0.35rem;
+}
+
+.tenant-dashboard-card-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.link-name {
+  font-weight: 500;
+}
+
+.placeholder-page {
+  padding: 1.5rem 0;
 }
 

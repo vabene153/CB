@@ -1,8 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.tenantId && !user?.isSuperAdmin) {
+      navigate(`/mandanten/${user.tenantId}`, { replace: true });
+      return;
+    }
+  }, [user?.tenantId, user?.isSuperAdmin, navigate]);
+
+  if (user?.tenantId && !user?.isSuperAdmin) {
+    return null;
+  }
 
   return (
     <div>
