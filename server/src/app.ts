@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import authRoutes from './routes.auth';
 import tenantRoutes from './routes.tenants';
+import customerRoutes from './routes.customers';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(express.json());
 // API-Routen
 app.use('/api/auth', authRoutes);
 app.use('/api/tenants', tenantRoutes);
+app.use('/api/customers', customerRoutes);
 
 // einfache Health-Route zum Testen
 app.get('/api/health', (_req, res) => {

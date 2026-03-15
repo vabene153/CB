@@ -7,11 +7,39 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(requireSuperAdmin);
 
-// GET /api/tenants – alle Mandanten
-router.get('/', async (_req, res) => {
+// GET /api/tenants – alle Mandanten, optional ?q= Suchbegriff
+router.get('/', async (req, res) => {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   try {
+    const where = q
+      ? {
+          OR: [
+            { name: { contains: q } },
+            { slug: { contains: q } },
+            { city: { contains: q } },
+            { street: { contains: q } },
+            { email: { contains: q } },
+            { phone: { contains: q } },
+            {
+              contacts: {
+                some: {
+                  OR: [
+                    { firstName: { contains: q } },
+                    { lastName: { contains: q } },
+                    { email: { contains: q } },
+                    { phone: { contains: q } },
+                    { mobile: { contains: q } },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : {};
     const tenants = await prisma.tenant.findMany({
+      where,
       orderBy: { name: 'asc' },
+      include: { contacts: { orderBy: { order: 'asc' } } },
     });
     res.json(tenants);
   } catch (error) {
@@ -20,7 +48,7 @@ router.get('/', async (_req, res) => {
   }
 });
 
-// GET /api/tenants/:id – ein Mandant
+// GET /api/tenants/:id – ein Mandant inkl. Kontakte
 router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!id || Number.isNaN(id)) {
@@ -30,6 +58,7 @@ router.get('/:id', async (req, res) => {
   try {
     const tenant = await prisma.tenant.findUnique({
       where: { id },
+      include: { contacts: { orderBy: { order: 'asc' } } },
     });
     if (!tenant) {
       res.status(404).json({ message: 'Mandant nicht gefunden.' });
@@ -41,6 +70,18 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ message: 'Fehler beim Laden des Mandanten.' });
   }
 });
+
+type ContactInput = {
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  isPrimary?: boolean;
+  notes?: string;
+  order?: number;
+};
 
 // POST /api/tenants – Mandant anlegen
 router.post('/', async (req, res) => {
@@ -54,13 +95,13 @@ router.post('/', async (req, res) => {
     country,
     phone,
     email,
-    contactPerson,
     billingName,
     billingStreet,
     billingPostalCode,
     billingCity,
     billingCountry,
     notes,
+    contacts: contactsInput,
   } = req.body as {
     name?: string;
     slug?: string;
@@ -71,13 +112,13 @@ router.post('/', async (req, res) => {
     country?: string;
     phone?: string;
     email?: string;
-    contactPerson?: string;
     billingName?: string;
     billingStreet?: string;
     billingPostalCode?: string;
     billingCity?: string;
     billingCountry?: string;
     notes?: string;
+    contacts?: ContactInput[];
   };
 
   if (!name?.trim()) {
@@ -115,7 +156,6 @@ router.post('/', async (req, res) => {
         country: country?.trim() || undefined,
         phone: phone?.trim() || null,
         email: email?.trim() || null,
-        contactPerson: contactPerson?.trim() || null,
         billingName: billingName?.trim() || null,
         billingStreet: billingStreet?.trim() || null,
         billingPostalCode: billingPostalCode?.trim() || null,
@@ -124,7 +164,29 @@ router.post('/', async (req, res) => {
         notes: notes?.trim() || null,
       },
     });
-    res.status(201).json(tenant);
+
+    const contacts = Array.isArray(contactsInput) ? contactsInput : [];
+    if (contacts.length > 0) {
+      await prisma.tenantContact.createMany({
+        data: contacts.map((c, i) => ({
+          tenantId: tenant.id,
+          firstName: (c.firstName ?? '').trim() || 'Kontakt',
+          lastName: (c.lastName ?? '').trim() || '',
+          role: c.role?.trim() || null,
+          phone: c.phone?.trim() || null,
+          mobile: c.mobile?.trim() || null,
+          email: c.email?.trim() || null,
+          isPrimary: !!c.isPrimary,
+          notes: c.notes?.trim() || null,
+          order: c.order ?? i,
+        })),
+      });
+    }
+    const created = await prisma.tenant.findUnique({
+      where: { id: tenant.id },
+      include: { contacts: { orderBy: { order: 'asc' } } },
+    });
+    res.status(201).json(created ?? tenant);
   } catch (error) {
     console.error('Tenant create error', error);
     res.status(500).json({ message: 'Fehler beim Anlegen des Mandanten.' });
@@ -149,13 +211,13 @@ router.patch('/:id', async (req, res) => {
     country,
     phone,
     email,
-    contactPerson,
     billingName,
     billingStreet,
     billingPostalCode,
     billingCity,
     billingCountry,
     notes,
+    contacts: contactsInput,
   } = req.body as {
     name?: string;
     slug?: string;
@@ -166,13 +228,13 @@ router.patch('/:id', async (req, res) => {
     country?: string;
     phone?: string;
     email?: string;
-    contactPerson?: string;
     billingName?: string;
     billingStreet?: string;
     billingPostalCode?: string;
     billingCity?: string;
     billingCountry?: string;
     notes?: string;
+    contacts?: ContactInput[];
   };
 
   try {
@@ -192,7 +254,6 @@ router.patch('/:id', async (req, res) => {
       country?: string;
       phone?: string | null;
       email?: string | null;
-      contactPerson?: string | null;
       billingName?: string | null;
       billingStreet?: string | null;
       billingPostalCode?: string | null;
@@ -208,7 +269,6 @@ router.patch('/:id', async (req, res) => {
     if (country !== undefined) data.country = country?.trim();
     if (phone !== undefined) data.phone = phone?.trim() || null;
     if (email !== undefined) data.email = email?.trim() || null;
-    if (contactPerson !== undefined) data.contactPerson = contactPerson?.trim() || null;
     if (billingName !== undefined) data.billingName = billingName?.trim() || null;
     if (billingStreet !== undefined) data.billingStreet = billingStreet?.trim() || null;
     if (billingPostalCode !== undefined) data.billingPostalCode = billingPostalCode?.trim() || null;
@@ -231,9 +291,31 @@ router.patch('/:id', async (req, res) => {
       data.slug = slugValue;
     }
 
-    const tenant = await prisma.tenant.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.tenant.update({ where: { id }, data });
+      await tx.tenantContact.deleteMany({ where: { tenantId: id } });
+      const contacts = Array.isArray(contactsInput) ? contactsInput : [];
+      if (contacts.length > 0) {
+        await tx.tenantContact.createMany({
+          data: contacts.map((c, i) => ({
+            tenantId: id,
+            firstName: (c.firstName ?? '').trim() || 'Kontakt',
+            lastName: (c.lastName ?? '').trim() || '',
+            role: c.role?.trim() || null,
+            phone: c.phone?.trim() || null,
+            mobile: c.mobile?.trim() || null,
+            email: c.email?.trim() || null,
+            isPrimary: !!c.isPrimary,
+            notes: c.notes?.trim() || null,
+            order: c.order ?? i,
+          })),
+        });
+      }
+    });
+
+    const tenant = await prisma.tenant.findUnique({
       where: { id },
-      data,
+      include: { contacts: { orderBy: { order: 'asc' } } },
     });
     res.json(tenant);
   } catch (error) {
