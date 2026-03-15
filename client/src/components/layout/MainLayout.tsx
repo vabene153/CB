@@ -16,12 +16,18 @@ const MainLayout: React.FC = () => {
       <aside className="layout-sidebar">
         <div className="sidebar-header">
           <span className="sidebar-logo">CB</span>
-          <span className="sidebar-title">Baustellen‑CRM</span>
+          <span className="sidebar-title">{user?.isSuperAdmin ? 'CB‑CRM' : (user?.tenantName || 'Baustellen‑CRM')}</span>
         </div>
         <nav className="sidebar-nav">
-          <Link to="/" className="sidebar-link">
-            Dashboard
-          </Link>
+          {user?.isSuperAdmin ? (
+            <Link to="/" className="sidebar-link">
+              Dashboard
+            </Link>
+          ) : (
+            <Link to={user?.tenantId ? `/mandanten/${user.tenantId}` : '/'} className="sidebar-link">
+              Übersicht
+            </Link>
+          )}
           {user?.isSuperAdmin && (
             <Link to="/mandanten" className="sidebar-link">
               Mandanten
@@ -33,6 +39,11 @@ const MainLayout: React.FC = () => {
           <Link to="/projekte" className="sidebar-link">
             Projekte
           </Link>
+          {(user?.isSuperAdmin || user?.isTenantAdmin) && (
+            <Link to="/mitarbeiter" className="sidebar-link">
+              Mitarbeiter
+            </Link>
+          )}
           <Link to="/fuhrpark" className="sidebar-link">
             Fuhrpark
           </Link>

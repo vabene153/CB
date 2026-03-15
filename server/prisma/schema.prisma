@@ -64,7 +64,6 @@ model Tenant {
   country   String?  @default("Deutschland")
   phone     String?
   email     String?
-  contactPerson String?
   billingName   String?
   billingStreet String?
   billingPostalCode String?
@@ -74,7 +73,30 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users User[]
+  users    User[]
+  contacts TenantContact[]
+
+  @@index([name])
+  @@index([city])
+}
+
+model TenantContact {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  firstName String
+  lastName  String
+  role      String?
+  phone     String?
+  mobile    String?
+  email     String?
+  isPrimary Boolean  @default(false)
+  notes     String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@index([tenantId])
 }
 
 model Role {
@@ -176,6 +198,8 @@ model Customer {
   createdById Int?
   updatedById Int?
 
+  contacts CustomerContact[]
+
   @@index([tenantId])
   @@index([tenantId, name])
 }
@@ -190,10 +214,14 @@ model CustomerContact {
   phone      String?
   mobile     String?
   email      String?
+  isPrimary  Boolean  @default(false)
   notes      String?
+  order      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   deletedAt  DateTime?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, customerId])

@@ -6,8 +6,10 @@ interface User {
   email: string;
   firstName: string;
   lastName: string;
+  tenantName?: string | null;
   roles?: string[];
   isSuperAdmin?: boolean;
+  isTenantAdmin?: boolean;
 }
 
 interface AuthContextValue {

@@ -22,7 +22,10 @@ router.post('/login', async (req, res) => {
         email,
         status: 'ACTIVE',
       },
-      include: { tenant: true },
+      include: {
+        tenant: true,
+        userRoles: { include: { role: true } },
+      },
     });
 
     if (!user) {
@@ -34,6 +37,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Ungültige Zugangsdaten.' });
     }
 
+    const isTenantAdmin = user.userRoles.some((ur) => ur.role.name === 'ADMIN');
+
     const jwtSecret = process.env.JWT_ACCESS_SECRET || 'super-secret-access';
     const accessToken = jwt.sign(
       {
@@ -41,6 +46,7 @@ router.post('/login', async (req, res) => {
         tenantId: user.tenantId,
         email: user.email,
         isSuperAdmin: user.isSuperAdmin,
+        isTenantAdmin,
       },
       jwtSecret,
       { expiresIn: 15 * 60 }, // 15 Minuten in Sekunden
@@ -54,7 +60,9 @@ router.post('/login', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         tenantId: user.tenantId,
+        tenantName: user.tenant?.name ?? null,
         isSuperAdmin: user.isSuperAdmin,
+        isTenantAdmin,
       },
     });
   } catch (error) {

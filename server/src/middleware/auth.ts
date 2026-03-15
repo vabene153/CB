@@ -12,6 +12,7 @@ export interface AuthUser {
   tenantId: number;
   email: string;
   isSuperAdmin: boolean;
+  isTenantAdmin: boolean;
 }
 
 declare global {
@@ -33,12 +34,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   const secret = process.env.JWT_ACCESS_SECRET || 'super-secret-access';
   try {
-    const decoded = jwt.verify(token, secret) as unknown as (JwtPayload & { isSuperAdmin?: boolean });
+    const decoded = jwt.verify(token, secret) as unknown as (JwtPayload & { isSuperAdmin?: boolean; isTenantAdmin?: boolean });
     req.user = {
       id: Number(decoded.sub),
       tenantId: Number(decoded.tenantId),
       email: decoded.email,
       isSuperAdmin: Boolean(decoded.isSuperAdmin),
+      isTenantAdmin: Boolean(decoded.isTenantAdmin),
     };
     next();
   } catch {
@@ -52,4 +54,11 @@ export function requireSuperAdmin(req: Request, res: Response, next: NextFunctio
     return;
   }
   next();
+}
+
+/** Erlaubt SuperAdmin oder Tenant-Admin (nur innerhalb des eigenen Mandanten). */
+export function canManageTenant(req: Request, tenantId: number): boolean {
+  if (!req.user) return false;
+  if (req.user.isSuperAdmin) return true;
+  return req.user.isTenantAdmin && req.user.tenantId === tenantId;
 }

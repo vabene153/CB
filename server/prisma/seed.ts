@@ -18,7 +18,6 @@ async function main() {
       country: 'Deutschland',
       phone: '+49 30 1112220',
       email: 'info@musterbau.de',
-      contactPerson: 'Anna Baumann',
       billingName: 'Musterbau GmbH Buchhaltung',
       billingStreet: 'Rechnungsweg 5',
       billingPostalCode: '10117',
@@ -26,6 +25,15 @@ async function main() {
       billingCountry: 'Deutschland',
       notes: 'Demo-Mandant für Tests.',
     },
+  });
+
+  await prisma.tenantContact.deleteMany({ where: { tenantId: tenant.id } });
+  await prisma.tenantContact.createMany({
+    data: [
+      { tenantId: tenant.id, firstName: 'Anna', lastName: 'Baumann', role: 'Geschäftsführung', phone: '+49 30 1112221', email: 'anna.baumann@musterbau.de', isPrimary: true, order: 1 },
+      { tenantId: tenant.id, firstName: 'Marco', lastName: 'Keller', role: 'Bauleiter', phone: '+49 30 1112222', mobile: '+49 171 1234567', email: 'marco.keller@musterbau.de', isPrimary: false, order: 2 },
+      { tenantId: tenant.id, firstName: 'Julia', lastName: 'Schmidt', role: 'Buchhaltung', phone: '+49 30 1112223', email: 'julia.schmidt@musterbau.de', isPrimary: false, order: 3 },
+    ],
   });
 
   // Rollen
@@ -150,6 +158,19 @@ async function main() {
     create: {
       userId: managerUser.id,
       roleId: projectManagerRole.id,
+    },
+  });
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: managerUser.id,
+        roleId: adminRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: managerUser.id,
+      roleId: adminRole.id,
     },
   });
 

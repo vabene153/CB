@@ -23,7 +23,12 @@ const LoginPage: React.FC = () => {
     try {
       const res = await apiClient.post('/auth/login', { email, password });
       login({ accessToken: res.data.accessToken, user: res.data.user });
-      navigate('/', { replace: true });
+      const u = res.data.user;
+      if (u?.tenantId && !u?.isSuperAdmin) {
+        navigate(`/mandanten/${u.tenantId}`, { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login fehlgeschlagen');
     } finally {

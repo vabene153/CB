@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../services/apiClient';
-import type { TenantContact } from './TenantsListPage';
+import type { Customer, CustomerContact } from './CustomersListPage';
 
-const emptyContact = (): TenantContact => ({
+const CUSTOMER_TYPES = ['Privat', 'Gewerblich', 'Öffentliche Hand', 'Sonstige'];
+
+const emptyContact = (): CustomerContact => ({
   firstName: '',
   lastName: '',
   role: '',
@@ -14,72 +16,92 @@ const emptyContact = (): TenantContact => ({
   order: 0,
 });
 
-const TenantFormPage: React.FC = () => {
+const CustomerEditPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [isActive, setIsActive] = useState(true);
+  const [type, setType] = useState('Gewerblich');
   const [street, setStreet] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('Deutschland');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [billingName, setBillingName] = useState('');
-  const [billingStreet, setBillingStreet] = useState('');
-  const [billingPostalCode, setBillingPostalCode] = useState('');
-  const [billingCity, setBillingCity] = useState('');
-  const [billingCountry, setBillingCountry] = useState('Deutschland');
   const [notes, setNotes] = useState('');
-  const [contacts, setContacts] = useState<TenantContact[]>([emptyContact()]);
+  const [contacts, setContacts] = useState<CustomerContact[]>([emptyContact()]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const deriveSlug = (value: string) =>
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-äöüß]/g, (c) => {
-        const map: Record<string, string> = { ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' };
-        return map[c] ?? '';
+  useEffect(() => {
+    const cid = id ? parseInt(id, 10) : NaN;
+    if (Number.isNaN(cid)) {
+      setLoadError('Ungültige ID.');
+      return;
+    }
+    let cancelled = false;
+    apiClient
+      .get<Customer>(`/customers/${cid}`)
+      .then((res) => {
+        if (!cancelled) {
+          const c = res.data;
+          setCustomer(c);
+          setName(c.name);
+          setType(c.type || 'Gewerblich');
+          setStreet(c.street ?? '');
+          setPostalCode(c.postalCode ?? '');
+          setCity(c.city ?? '');
+          setCountry(c.country ?? 'Deutschland');
+          setPhone(c.phone ?? '');
+          setEmail(c.email ?? '');
+          setNotes(c.notes ?? '');
+          setContacts(
+            c.contacts && c.contacts.length > 0
+              ? c.contacts.map((x) => ({
+                  ...x,
+                  firstName: x.firstName ?? '',
+                  lastName: x.lastName ?? '',
+                  role: x.role ?? '',
+                  phone: x.phone ?? '',
+                  mobile: x.mobile ?? '',
+                  email: x.email ?? '',
+                  isPrimary: x.isPrimary ?? false,
+                  order: x.order ?? 0,
+                }))
+              : [emptyContact()]
+          );
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(err.response?.data?.message || 'Kunde nicht gefunden.');
       });
+    return () => { cancelled = true; };
+  }, [id]);
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    setName(v);
-    if (!slug || slug === deriveSlug(name)) setSlug(deriveSlug(v));
-  };
-
-  const updateContact = (index: number, field: keyof TenantContact, value: string | boolean) => {
+  const updateContact = (index: number, field: keyof CustomerContact, value: string | boolean) => {
     setContacts((prev) =>
       prev.map((c, i) => (i === index ? { ...c, [field]: value } : { ...c, isPrimary: field === 'isPrimary' && value ? false : c.isPrimary }))
     );
   };
-
   const addContact = () => setContacts((prev) => [...prev, { ...emptyContact(), order: prev.length }]);
   const removeContact = (index: number) => setContacts((prev) => prev.filter((_, i) => i !== index));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (!customer) return;
+    setSubmitError(null);
     setLoading(true);
     try {
-      await apiClient.post('/tenants', {
+      await apiClient.patch(`/customers/${customer.id}`, {
         name: name.trim(),
-        slug: slug.trim() || undefined,
-        isActive,
+        type: type.trim(),
         street: street.trim() || undefined,
         postalCode: postalCode.trim() || undefined,
         city: city.trim() || undefined,
         country: country.trim() || undefined,
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
-        billingName: billingName.trim() || undefined,
-        billingStreet: billingStreet.trim() || undefined,
-        billingPostalCode: billingPostalCode.trim() || undefined,
-        billingCity: billingCity.trim() || undefined,
-        billingCountry: billingCountry.trim() || undefined,
         notes: notes.trim() || undefined,
         contacts: contacts.map((c, i) => ({
           firstName: c.firstName.trim(),
@@ -92,40 +114,64 @@ const TenantFormPage: React.FC = () => {
           order: i,
         })),
       });
-      navigate('/mandanten', { replace: true });
+      navigate('/kunden', { replace: true });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Fehler beim Anlegen.');
+      setSubmitError(err.response?.data?.message || 'Fehler beim Speichern.');
     } finally {
       setLoading(false);
     }
   };
 
+  if (loadError) {
+    return (
+      <div className="module-page">
+        <div className="alert-error">{loadError}</div>
+        <button type="button" className="btn-secondary-inline" onClick={() => navigate('/kunden')}>
+          Zurück zur Liste
+        </button>
+      </div>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <div className="module-page">
+        <p className="module-muted">Lade…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="module-page">
       <div className="module-header">
-        <h1 className="module-title">Mandant anlegen</h1>
-        <p className="module-subtitle">Neue Baufirma / Mandant hinzufügen.</p>
+        <h1 className="module-title">Kunde bearbeiten</h1>
+        <p className="module-subtitle">{customer.name}</p>
       </div>
       <form onSubmit={handleSubmit} className="form-card wide">
-        {error && <div className="alert-error">{error}</div>}
+        {submitError && <div className="alert-error">{submitError}</div>}
         <div className="form-field">
-          <label className="form-label">Name *</label>
-          <input type="text" className="form-input" value={name} onChange={handleNameChange} placeholder="z. B. Musterbau GmbH" required />
+          <label className="form-label">Name / Firma *</label>
+          <input type="text" className="form-input" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div className="form-field">
-          <label className="form-label">Slug (URL-Kürzel)</label>
-          <input type="text" className="form-input" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="z. B. musterbau" />
-          <span className="form-hint">Leer lassen = wird aus dem Namen erzeugt.</span>
+          <label className="form-label">Kundentyp *</label>
+          <select className="form-input" value={type} onChange={(e) => setType(e.target.value)}>
+            {CUSTOMER_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="form-field">
           <label className="form-label">Straße / Nr.</label>
-          <input type="text" className="form-input" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="z. B. Bauweg 10" />
+          <input type="text" className="form-input" value={street} onChange={(e) => setStreet(e.target.value)} />
         </div>
         <div className="form-field">
           <label className="form-label">PLZ / Ort</label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input type="text" className="form-input" style={{ maxWidth: '120px' }} value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="10115" />
-            <input type="text" className="form-input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Berlin" />
+            <input type="text" className="form-input" style={{ maxWidth: '120px' }} value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
+            <input type="text" className="form-input" value={city} onChange={(e) => setCity(e.target.value)} />
           </div>
         </div>
         <div className="form-field">
@@ -133,17 +179,17 @@ const TenantFormPage: React.FC = () => {
           <input type="text" className="form-input" value={country} onChange={(e) => setCountry(e.target.value)} />
         </div>
         <div className="form-field">
-          <label className="form-label">Telefon (Firma)</label>
-          <input type="text" className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+49 …" />
+          <label className="form-label">Telefon</label>
+          <input type="text" className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
         <div className="form-field">
-          <label className="form-label">E-Mail (Firma)</label>
-          <input type="email" className="form-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="info@firma.de" />
+          <label className="form-label">E-Mail</label>
+          <input type="email" className="form-input" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
 
         <hr style={{ borderColor: 'rgba(30,64,175,0.5)' }} />
         <div className="form-field">
-          <label className="form-label">Ansprechpartner / Kontakte</label>
+          <label className="form-label">Kundenkontakte / Ansprechpartner</label>
           {contacts.map((c, i) => (
             <div key={i} className="contact-block">
               <div className="contact-block-header">
@@ -175,39 +221,14 @@ const TenantFormPage: React.FC = () => {
 
         <hr style={{ borderColor: 'rgba(30,64,175,0.5)' }} />
         <div className="form-field">
-          <label className="form-label">Rechnungsname</label>
-          <input type="text" className="form-input" value={billingName} onChange={(e) => setBillingName(e.target.value)} placeholder="optional, falls abweichend" />
-        </div>
-        <div className="form-field">
-          <label className="form-label">Rechnungsstraße / Nr.</label>
-          <input type="text" className="form-input" value={billingStreet} onChange={(e) => setBillingStreet(e.target.value)} />
-        </div>
-        <div className="form-field">
-          <label className="form-label">Rechnungs-PLZ / Ort</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input type="text" className="form-input" style={{ maxWidth: '120px' }} value={billingPostalCode} onChange={(e) => setBillingPostalCode(e.target.value)} />
-            <input type="text" className="form-input" value={billingCity} onChange={(e) => setBillingCity(e.target.value)} />
-          </div>
-        </div>
-        <div className="form-field">
-          <label className="form-label">Rechnungsland</label>
-          <input type="text" className="form-input" value={billingCountry} onChange={(e) => setBillingCountry(e.target.value)} />
-        </div>
-        <div className="form-field">
           <label className="form-label">Notizen</label>
-          <textarea className="form-input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Interne Hinweise zum Mandanten…" />
-        </div>
-        <div className="form-field form-field-check">
-          <label className="form-label-inline">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-            <span>Mandant ist aktiv</span>
-          </label>
+          <textarea className="form-input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
         <div className="form-actions">
           <button type="submit" className="btn-primary-inline" disabled={loading}>
-            {loading ? 'Wird angelegt…' : 'Anlegen'}
+            {loading ? 'Speichern…' : 'Speichern'}
           </button>
-          <button type="button" className="btn-secondary-inline" onClick={() => navigate('/mandanten')}>
+          <button type="button" className="btn-secondary-inline" onClick={() => navigate('/kunden')}>
             Abbrechen
           </button>
         </div>
@@ -216,4 +237,4 @@ const TenantFormPage: React.FC = () => {
   );
 };
 
-export default TenantFormPage;
+export default CustomerEditPage;
